@@ -36,3 +36,4 @@ public class ProcPong extends Thread {
 			send(dado);
 		}
 	}
+}
