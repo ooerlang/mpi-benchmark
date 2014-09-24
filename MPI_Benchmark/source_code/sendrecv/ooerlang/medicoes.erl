@@ -4,7 +4,7 @@
 %%-----------------------------------------------------------------------------
 %% printResult( Data, R, Time, OutFile )
 %% imprime o resultado
-%% 
+%%
 %% Data (binary) = os dados usados no teste
 %% R             = quantidade de repetições
 %% Time (µs)  = o tempo total do teste
@@ -24,7 +24,7 @@ print_header(File) ->
 
 %%-----------------------------------------------------------------------------
 %% bandwidth_calc(Data, Time)
-%% calcula o tráfego na rede baseado no tamanho dos dados e quanto tempo levou 
+%% calcula o tráfego na rede baseado no tamanho dos dados e quanto tempo levou
 %%
 %% Data (binary) = os dados usados no teste
 %% Time (µs)  = o tempo total do teste

@@ -8,11 +8,11 @@ run(DataSize, R) ->
    OutFileLocation = "out_cerl_pingpong.txt",
 
    case file:open(OutFileLocation, [append]) of
-	{error, Why} ->
-	    error_report("Falha ao criar arquivo!", Why);
-   
-	{ok, OutFile} ->
-	    run(DataSize, R, OutFile)
+    {error, Why} ->
+        error_report("Falha ao criar arquivo!", Why);
+
+    {ok, OutFile} ->
+        run(DataSize, R, OutFile)
     end.
 
 run(DataSize, R, OutFile) ->
@@ -20,12 +20,12 @@ run(DataSize, R, OutFile) ->
     Self = self(),
     SpawnStart = time_microseg(),
     P1 = proc::new(Data, Self, R),
-	P2 = proc::new(Data, Self, R),
+    P2 = proc::new(Data, Self, R),
     SpawnEnd = time_microseg(),
     TimeStart = time_microseg(),
     P1::send({init, self(), P2::get_pid()}),
-	finalize(P1::get_pid()),
-	finalize(P2::get_pid()),
+    finalize(P1::get_pid()),
+    finalize(P2::get_pid()),
     TimeEnd = time_microseg(),
     TotalTime = TimeEnd - TimeStart,
     SpawnTime = SpawnEnd - SpawnStart,
@@ -35,17 +35,17 @@ run(DataSize, R, OutFile) ->
 %% finalize( Pid )
 %% espera termino da execucao do processo
 %%
-%% Pid		= o pid do processo
+%% Pid        = o pid do processo
 finalize(Pid) ->
-	receive
-		{finish, Pid} ->
-			ok
-	end.
+    receive
+        {finish, Pid} ->
+            ok
+    end.
 
 %%-----------------------------------------------------------------------------
 %% printResult( Data, R, Time, OutFile )
 %% imprime o resultado
-%% 
+%%
 %% Data (binary) = os dados usados no teste
 %% R             = quantidade de repetições
 %% Time (µs)  = o tempo total do teste
@@ -61,7 +61,7 @@ printResult(Data, R, Time_exec, Time_spawn, OutFile) ->
 
 %%-----------------------------------------------------------------------------
 %% bandwidth_calc(Data, Time)
-%% calcula o tráfego na rede baseado no tamanho dos dados e quanto tempo levou 
+%% calcula o tráfego na rede baseado no tamanho dos dados e quanto tempo levou
 %%
 %% Data (binary) = os dados usados no teste
 %% Time (µs)  = o tempo total do teste
@@ -95,8 +95,8 @@ time_microseg() ->
 %% error_report(Msg, Reason)
 %% formata a msg de erro
 error_report(Msg, Reason) ->
-	io:format("%%%%%%%%%%%%%% ERRO %%%%%%%%%%%%%%\n" ++
-				     "Msg: ~s\n" ++
-				     "Reason: ~s\n\n", [Msg, Reason]).
+    io:format("%%%%%%%%%%%%%% ERRO %%%%%%%%%%%%%%\n" ++
+                     "Msg: ~s\n" ++
+                     "Reason: ~s\n\n", [Msg, Reason]).
 
 

@@ -9,18 +9,18 @@ Pid.
 methods.
 
 new(RightProc) ->
-	self::Pid = spawn( fun() -> loop(RightProc) end ).
+    self::Pid = spawn( fun() -> loop(RightProc) end ).
 
 get_pid() -> self::Pid.
 
 send(Msg) ->
-	self::Pid ! Msg.
+    self::Pid ! Msg.
 
 class_methods.
 
 loop(RightProc) ->
-	receive
-	Data ->
-	    RightProc ! Data,
-	    loop(RightProc)
+    receive
+    Data ->
+        RightProc ! Data,
+        loop(RightProc)
     end.
