@@ -1,69 +1,69 @@
-public class PingPong extends Thread{
+public class PingPong extends Thread {
 
-	private boolean espera = true;
-	
-	private long timeSpawn;
-	private long timeExec;
+    private boolean waiting = true;
 
-	public long timeStart;
-	public long timeEnd;
+    private long timeSpawn;
+    private long timeExec;
 
-	private int tamDados;
-	private int qtdRept;
-	private String outLocation;
-	
-	public PingPong(int tamDados, int qtdMsg, String outLocation) {
-		this.tamDados = tamDados;
-		this.qtdRept = qtdMsg;
-		this.outLocation = outLocation;
-	}
-	
-	public void run() {
-		byte[] dado = generateData(tamDados);
+    public long timeStart;
+    public long timeEnd;
 
-		timeStart = timeMicroSeg();
-		ProcPing ping = new ProcPing("1", dado, this, qtdRept);
-		ProcPong pong = new ProcPong("2", dado, qtdRept);
-		timeEnd = timeMicroSeg();
+    private int sizeData;
+    private int numRept;
+    private String outLocation;
 
-		timeSpawn = timeEnd - timeStart;
-		
-		timeStart = timeMicroSeg();
-		
-		ping.setPeer(pong);
-		ping.start();
-		pong.setPeer(ping);
-		pong.start();
-		
-		dormirAteTerminar();
-		timeEnd = timeMicroSeg();
+    public PingPong(int sizeData, int numMsg, String outLocation) {
+        this.sizeData = sizeData;
+        this.numRept = numMsg;
+        this.outLocation = outLocation;
+    }
 
-		timeExec = timeEnd - timeStart;
-		
-		Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
-	}
+    public void run() {
+        byte[] data = generateData(sizeData);
 
-	private synchronized void dormirAteTerminar() {
-		while(espera){
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}		
-	}
+        timeStart = timeMicroSeg();
+        ProcPing ping = new ProcPing("1", data, this, numRept);
+        ProcPong pong = new ProcPong("2", data, numRept);
+        timeEnd = timeMicroSeg();
 
-	public synchronized void acordar() {
-		espera = false;
-		notifyAll();
-	}
+        timeSpawn = timeEnd - timeStart;
 
-	private byte[] generateData(int tamDados) {
-		byte[] dado = new byte[tamDados];
-		return dado;
-	}
+        timeStart = timeMicroSeg();
 
-	private long timeMicroSeg() {
-		return System.nanoTime()/1000;
-	}
+        ping.setPeer(pong);
+        ping.start();
+        pong.setPeer(ping);
+        pong.start();
+
+        sleepUntilFinish();
+        timeEnd = timeMicroSeg();
+
+        timeExec = timeEnd - timeStart;
+
+        Store.writeResultPeer(outLocation, sizeData, numRept, timeExec, timeSpawn);
+    }
+
+    private synchronized void sleepUntilFinish() {
+        while(waiting) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public synchronized void wakeup() {
+        waiting = false;
+        notifyAll();
+    }
+
+    private byte[] generateData(int sizeData) {
+        byte[] data = new byte[sizeData];
+        return data;
+    }
+
+    private long timeMicroSeg() {
+        return System.nanoTime()/1000;
+    }
 }
