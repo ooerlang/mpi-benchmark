@@ -1,70 +1,70 @@
-public class PingPing extends Thread{
+public class PingPing extends Thread {
 
-	private final int QTD_PROC_TOTAL = 2;
-	private int qtdProcTerminados = 0;
-	
-	private long timeSpawn;
-	private long timeExec;
+    private final int NUM_TOTAL_PROC = 2;
+    private int numFinishedProcess = 0;
 
-	public long timeStart;
-	public long timeEnd;
+    private long timeSpawn;
+    private long timeExec;
 
-	private int tamDados;
-	private int qtdRept;
-	private String outLocation;
-	
-	public PingPing(int tamDados, int qtdMsg, String outLocation) {
-		this.tamDados = tamDados;
-		this.qtdRept = qtdMsg;
-		this.outLocation = outLocation;
-	}
+    public long timeStart;
+    public long timeEnd;
 
-	public void run() {
-		byte[] dado = generateData(tamDados);
+    private int dataSize;
+    private int numRept;
+    private String outLocation;
 
-		timeStart = timeMicroSeg();
-		ProcPing p1 = new ProcPing("1", dado, this, qtdRept);
-		ProcPing p2 = new ProcPing("2", dado, this, qtdRept);
-		timeEnd = timeMicroSeg();
+    public PingPing(int dataSize, int numMsg, String outLocation) {
+        this.dataSize = dataSize;
+        this.numRept = numMsg;
+        this.outLocation = outLocation;
+    }
 
-		timeSpawn = timeEnd - timeStart;
-		
-		timeStart = timeMicroSeg();
-		p1.setPeer(p2);
-		p1.start();
-		p2.setPeer(p1);
-		p2.start();
-		
-		dormirAteTerminar();
+    public void run() {
+        byte[] data = generateData(dataSize);
 
-		timeEnd = timeMicroSeg();
+        timeStart = timeMicroSeg();
+        ProcPing p1 = new ProcPing("1", data, this, numRept);
+        ProcPing p2 = new ProcPing("2", data, this, numRept);
+        timeEnd = timeMicroSeg();
 
-		timeExec = timeEnd - timeStart;
-		
-		Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
-	}
+        timeSpawn = timeEnd - timeStart;
 
-	private synchronized void dormirAteTerminar() {
-		while(qtdProcTerminados!= QTD_PROC_TOTAL){
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}		
-	}
+        timeStart = timeMicroSeg();
+        p1.setPeer(p2);
+        p1.start();
+        p2.setPeer(p1);
+        p2.start();
 
-	public synchronized void acordar() {
-		qtdProcTerminados++;
-		notifyAll();
-	}
+        sleepUntilFinish();
 
-	private byte[] generateData(int tamDados) {
-		byte[] dado = new byte[tamDados];
-		return dado;
-	}
+        timeEnd = timeMicroSeg();
 
-	private long timeMicroSeg() {
-		return System.nanoTime()/1000;
-	}
+        timeExec = timeEnd - timeStart;
+
+        Store.writeResultPeer(outLocation, dataSize, numRept, timeExec, timeSpawn);
+    }
+
+    private synchronized void sleepUntilFinish() {
+        while(numFinishedProcess!= NUM_TOTAL_PROC) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public synchronized void wakeup() {
+        numFinishedProcess++;
+        notifyAll();
+    }
+
+    private byte[] generateData(int dataSize) {
+        byte[] data = new byte[dataSize];
+        return data;
+    }
+
+    private long timeMicroSeg() {
+        return System.nanoTime()/1000;
+    }
 }
