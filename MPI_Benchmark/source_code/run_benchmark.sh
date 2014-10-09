@@ -49,7 +49,7 @@ clean() {
     case $1 in
         elixir)   rm -f *.beam;;
         erlang)   rm -f *.beam;;
-        ooerlang) rm -f *.beam *.erl;;
+        ooerlang) rm -f *.beam proc.erl pingping.erl pingpong.erl sendrecv.erl;;
         java)     rm -f *.class;;
         scala)    rm -f *.class;;
         python)   rm -f *.pyc;;
@@ -144,7 +144,7 @@ if [[ "${BENCH_LIST}" == *pingping* ]]; then
         for msgnum in $PG_LOOP_NUM_LIST; do
             for msgsize in $PG_MSG_SIZE_LIST; do
                 echo "run $i pingpong $lang ${msgnum}x${msgsize}"
-                run_pingping $lang $msgsize $msgnum >> output/${lang}_pingping.txt
+                run_pingping $lang $msgsize $msgnum >> ${BASE_DIR}/output/${lang}_pingping.txt
             done
         done
     done
@@ -161,7 +161,7 @@ if [[ "${BENCH_LIST}" == *pingpong* ]]; then
             for msgnum in $PG_LOOP_NUM_LIST; do
                 for msgsize in $PG_MSG_SIZE_LIST; do
                     echo "run $i pingpong $lang ${msgnum}x${msgsize}"
-                    run_pingpong $lang $msgsize $msgnum >> output/${lang}_pingpong.txt
+                    run_pingpong $lang $msgsize $msgnum >> ${BASE_DIR}/output/${lang}_pingpong.txt
                 done
             done
         done
@@ -169,7 +169,7 @@ if [[ "${BENCH_LIST}" == *pingpong* ]]; then
 fi
 
 if [[ "${BENCH_LIST}" == *sendrecv* ]]; then
-    for i in `seq 1 10`; do
+    for i in `seq 1 $ITERATION_NUM`; do
         for lang in $LANG_LIST; do
             l=`cut -d'+' -f1 <<< $lang`
             cd $BASE_DIR/sendrecv/$l
@@ -177,9 +177,9 @@ if [[ "${BENCH_LIST}" == *sendrecv* ]]; then
             build $lang
             for proc in $SR_PROC_NUM_LIST; do
                 for msgnum in $SR_LOOP_NUM_LIST; do
-                    for msgsize in $SR_MSG_SIZE_LIST; do
+                    for msgsize in $SR_MSG_LIST; do
                         echo "run $i sendrecv $lang ${msgnum}x${msgsize}x${proc}"
-                        run_sendrecv $lang $msgsize $msgnum $proc >> output/${lang}_sendrecv.txt
+                        run_sendrecv $lang $msgsize $msgnum $proc >> ${BASE_DIR}/output/${lang}_sendrecv.txt
                     done
                 done
             done
