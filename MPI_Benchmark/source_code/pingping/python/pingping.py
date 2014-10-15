@@ -7,7 +7,7 @@ from threading import Thread
 
 class ProcPing(Thread):
 	def __init__(self, name, data, qtdMsg):
-		Thread.__init__(self)							
+		Thread.__init__(self)
 		self.name = name
 		self.data = data
 		self.qtdMsg = qtdMsg
@@ -16,13 +16,13 @@ class ProcPing(Thread):
 	def setPeer(self, Peer):
 		self.Peer = Peer
 
-	def send(self, dado):		
+	def send(self, dado):
 		self.Peer.mailBox = dado
 
 	def recv(self):
-		while True:	
-			if not len(self.mailBox) < len(self.data):								
-				print(self)				
+		while True:
+			if not len(self.mailBox) < len(self.data):
+				print(self)
 				self.mailBox = []
 				break
 
@@ -34,36 +34,38 @@ class ProcPing(Thread):
 
 class PingPing(Thread):
 
-	def __init__(self, tamMsg, qtdMsg):
+	def __init__(self, tamMsg, qtdMsg, PairsN):
 		Thread.__init__(self)
 		self.tamMsg = tamMsg
 		self.qtdMsg = qtdMsg
+		self.PairsN = PairsN
 
 	def run(self):
 		index = 0
-		array = [1]			
+		array = [1]
 		while index < self.tamMsg -1:
 			array.append(1)
 			index = index + 1
-		
-		p1 = ProcPing("1", array, self.qtdMsg)
-		p2 = ProcPing("2", array, self.qtdMsg)
-		
-		p2.setPeer(p1)
-		p1.setPeer(p2)
-		
-		timeStart = datetime.datetime.now()
-		p1.start()		
-		p2.start()
-		
-		p1.join()
-		p2.join()
-		timeEnd = datetime.datetime.now()
-		
-		timeExec = timeEnd - timeStart
 
+		for pair in range(self.PairsN):
+			p1 = ProcPing("1", array, self.qtdMsg)
+			p2 = ProcPing("2", array, self.qtdMsg)
+
+			p2.setPeer(p1)
+			p1.setPeer(p2)
+
+		#timeStart = datetime.datetime.now()
+			p1.start()
+			p2.start()
+
+			p1.join()
+			p2.join()
+			#timeEnd = datetime.datetime.now()
+
+			#timeExec = timeEnd - timeStart
+		timeExec = "00"
 		line = "%d\t%d\t%s\n" % (self.tamMsg, self.qtdMsg, timeExec)
-	
+
 		try:
 			arq = open('saida.txt', 'r')
 			textoSaida = arq.read()
@@ -83,8 +85,9 @@ def main():
 
 	tamMsg = int(param[0])
 	qtdMsg = int(param[1])
+	PairsN = int(param[2])
 
-	pingPing = PingPing(tamMsg, qtdMsg)
+	pingPing = PingPing(tamMsg, qtdMsg, PairsN)
 	pingPing.start()
 
 if __name__=="__main__":
