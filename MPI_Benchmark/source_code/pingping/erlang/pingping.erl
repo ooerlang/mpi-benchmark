@@ -1,37 +1,50 @@
 -module(pingping).
--export([run/2, run/3]).
+-export([run/3, run/4, create_pairs/4]).
+
 -include("conf.hrl").
 
-run(DataSize, R) ->
+run(DataSize, R, PairsN) ->
 	OutFileLocation = "../../docs/erlang/out_erl_pingping.txt",
 	case file:open(OutFileLocation, [append]) of
 		{error, Why} ->
-			?ERR_REPORT("Falha ao criar arquivo!", Why);
+			?ERR_REPORT("Failed to create file!", Why);
 		{ok, OutFile} ->
-			run(DataSize, R, OutFile)
+			run(DataSize, R, PairsN, OutFile)
 	end.
 
-run(DataSize, R, OutFile) ->
+run(DataSize, R, PairsN, OutFile) ->
 	Data = generate_data(DataSize),
-	Self = self(),
-	SpawnStart = time_microseg(),
-	P1 = spawn(fun() -> pingping(Data, Self, R) end),
-	P2 = spawn(fun() -> pingping(Data, Self, R) end),
-	SpawnEnd = time_microseg(),
+  create_pairs(PairsN, Data, R, OutFile).
+
+create_pairs(0, _, _, _) -> ok;
+
+create_pairs(PairsN, Data, R, OutFile) ->
+
+  Self = self(),
+
+  SpawnStart = time_microseg(),
+  P1 = spawn(fun() -> pingping(Data, Self, R) end),
+  P2 = spawn(fun() -> pingping(Data, Self, R) end),
+
+  SpawnEnd = time_microseg(),
 	TimeStart = time_microseg(),
-	P1 ! {init, self(), P2},
-	P2 ! {init, self(), P1},
-	finalize(P1),
-	finalize(P2),
-	TimeEnd = time_microseg(),
+  P1 ! {init, self(), P2},
+  P2 ! {init, self(), P1},
+
+  finalize(P1),
+  finalize(P2),
+  TimeEnd = time_microseg(),
 	TotalTime = TimeEnd - TimeStart,
 	SpawnTime = SpawnEnd - SpawnStart,
-	 printResult(Data, R, TotalTime, SpawnTime, OutFile).
+
+	printResult(Data, R, TotalTime, SpawnTime, OutFile),
+  create_pairs(PairsN-1, Data, R, OutFile).
 
 pingping(_,Parent, 0) ->
 	Parent ! {finish, self()};
 
 pingping(Data, Parent, R) ->
+
 	receive
 		{init, Parent, Peer} ->
 			Peer ! {self(), Data},
@@ -48,25 +61,25 @@ finalize(P1) ->
 	end.
 
 printResult(Data, R, Time_exec, Time_spawn, OutFile) ->
-	FormatH = "~-9s\t ~-13s\t ~-17s\t ~-11s\t ~-10s~n",
-	Header = ["#bytes", "#repetitions", "exec_time[µsec]", "MBytes/sec", "spawn_time"],
-	io:format(OutFile, FormatH, Header),
-	MBps = bandwidth_calc(Data, Time_exec),
-	FormatD = "~-9w\t ~-13w\t ~-17.2f\t ~-11.6f\t ~-15.2f~n",
-	io:format(OutFile, FormatD, [size(Data), R, Time_exec, Time_spawn, MBps]).
+  FormatH = "~-9s\t ~-13s\t ~-17s\t ~-11s\t ~-10s~n",
+  Header = ["#bytes", "#repetitions", "exec_time[µsec]", "MBytes/sec", "spawn_time"],
+  io:format(OutFile, FormatH, Header),
+  MBps = bandwidth_calc(Data, Time_exec),
+  FormatD = "~-9w\t ~-13w\t ~-17.2f\t ~-11.6f\t ~-15.2f~n",
+  io:format(OutFile, FormatD, [size(Data), R, Time_exec, Time_spawn, MBps]).
 
 bandwidth_calc(Data, Time) ->
-	Megabytes = (size(Data) / math:pow(2, 20)),
-	Seconds = (Time * 1.0e-6),
-	Megabytes / Seconds.
+  Megabytes = (size(Data) / math:pow(2, 20)),
+  Seconds = (Time * 1.0e-6),
+  Megabytes / Seconds.
 
 generate_data(Size) -> generate_data(Size, []).
 
 generate_data(0, Bytes) ->
-	list_to_binary(Bytes);
+  list_to_binary(Bytes);
 generate_data(Size, Bytes) ->
-	generate_data(Size - 1, [1 | Bytes]).
+  generate_data(Size - 1, [1 | Bytes]).
 
 time_microseg() ->
-	{MS, S, US} = now(),
-	(MS * 1.0e+12) + (S * 1.0e+6) + US.
+  {MS, S, US} = now(),
+  (MS * 1.0e+12) + (S * 1.0e+6) + US.

@@ -1,32 +1,44 @@
 -module(pingpong).
--export([run/2, run/3]).
+-export([run/3, run/4, create_pairs/4]).
+
 -include("conf.hrl").
 
-run(DataSize, R) ->
+run(DataSize, R, PairsN) ->
 	OutFileLocation = "../../docs/erlang/out_erl_pingpong.txt",
 
 	case file:open(OutFileLocation, [append]) of
 		{error, Why} ->
-			?ERR_REPORT("Falha ao criar arquivo!", Why);
+			?ERR_REPORT("Failed to create file!", Why);
 		{ok, OutFile} ->
-			run(DataSize, R, OutFile)
+			run(DataSize, R, PairsN, OutFile)
 	end.
 
-run(DataSize, R, OutFile) ->
+run(DataSize, R, PairsN, OutFile) ->
 	Data = generate_data(DataSize),
-	Self = self(),
-	SpawnStart = time_microseg(),
-	P1 = spawn(fun() -> pingpong(Data, Self, R) end),
-	P2 = spawn(fun() -> pingpong(Data, Self, R) end),
-	SpawnEnd = time_microseg(),
+	create_pairs(PairsN, Data, R, OutFile).
+
+create_pairs(0, _, _, _) -> ok;
+
+create_pairs(PairsN, Data, R, OutFile) ->
+
+  Self = self(),
+
+  SpawnStart = time_microseg(),
+  P1 = spawn(fun() -> pingpong(Data, Self, R) end),
+  P2 = spawn(fun() -> pingpong(Data, Self, R) end),
+
+  SpawnEnd = time_microseg(),
 	TimeStart = time_microseg(),
-	P1 ! {init, self(), P2},
-	finalize(P1),
-	finalize(P2),
-	TimeEnd = time_microseg(),
+  P1 ! {init, self(), P2},
+
+  finalize(P1),
+  finalize(P2),
+  TimeEnd = time_microseg(),
 	TotalTime = TimeEnd - TimeStart,
 	SpawnTime = SpawnEnd - SpawnStart,
-	printResult(Data, R, TotalTime, SpawnTime, OutFile).
+
+	printResult(Data, R, TotalTime, SpawnTime, OutFile),
+  create_pairs(PairsN-1, Data, R, OutFile).
 
 pingpong(_,Parent, 0) ->
 	Parent ! {finish, self()};
