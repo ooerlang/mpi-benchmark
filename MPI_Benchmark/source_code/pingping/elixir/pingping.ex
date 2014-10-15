@@ -3,30 +3,36 @@ defmodule Pingping do
   MPI Benchmark [Pingping] in elixir by Filipe Varjão <frgv@cin.ufpe.br>
   """
 
-  def run(size, r) do
+  def run(size, r, pairsN) do
 
     data = generate_data(size)
+    create_pairs(pairsN, data, r)
 
-    spawnStart = time_microseg()
+    # PRINT RESULT
+    #IO.puts "bytes #{:erlang.size(data)} | repetitions #{r} | exec_time[µsec] #{totalTime} | MBytes/sec #{spawnTime} | spawn_time #{bandwidth_calc(data, totalTime)}"
+
+  end
+
+  def create_pairs(0, _, _), do: :ok
+
+  def create_pairs(pairsN, data, r) do
+    #spawnStart = time_microseg()
 
     parent = self()
- 
+
     p1 = spawn(fn -> pingping(data, parent, r) end)
     p2 = spawn(fn -> pingping(data, parent, r) end)
- 
-    spawnEnd = time_microseg()
-    timeStart = time_microseg()
+
+    #spawnEnd = time_microseg()
+    #timeStart = time_microseg()
     send(p1, {:init, self, p2})
     send(p2, {:init, self, p1})
     finalize(p1)
     finalize(p2)
-    timeEnd = time_microseg()
-    totalTime = timeEnd - timeStart
-    spawnTime = spawnEnd - spawnStart
-
-    # PRINT RESULT
-    IO.puts "bytes #{:erlang.size(data)} | repetitions #{r} | exec_time[µsec] #{totalTime} | MBytes/sec #{spawnTime} | spawn_time #{bandwidth_calc(data, totalTime)}"
-
+    #timeEnd = time_microseg()
+    #totalTime = timeEnd - timeStart
+    #spawnTime = spawnEnd - spawnStart
+    create_pairs(pairsN - 1, data, r)
   end
 
   def pingping(_, pid, 0), do: send(pid ,{:finish, self})

@@ -16,7 +16,7 @@ public class ProcPong extends Thread {
 	}
 
 	private synchronized void send(byte[] msg) {
-		peer.mailbox = msg.clone();
+		peer.mailbox = msg;//.clone();
 	}
 	
 	private void recv() {
@@ -36,3 +36,4 @@ public class ProcPong extends Thread {
 			send(dado);
 		}
 	}
+}

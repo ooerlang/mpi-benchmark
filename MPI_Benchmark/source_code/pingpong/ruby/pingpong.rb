@@ -23,8 +23,8 @@ class ProcPing
 	end
 
 	def recv()
-		while (true)		
-			if (@mailBox != nil) and (@mailBox.length == @data.length)				
+		while (true)
+			if (@mailBox != nil) and (@mailBox.length == @data.length)
 				@mailBox= Array.new
 				break
 			end 
@@ -33,9 +33,9 @@ class ProcPing
 
 	def start
 		while (true)
-			send()	
+			send()
 			if(@i < @qtdMsg - 1)
-				recv()				
+				recv()
 			else
 				break	
 			end
@@ -67,8 +67,8 @@ class ProcPong
 	end
 
 	def recv()
-		while (true)		
-			if (@mailBox != nil) and (@mailBox.length == @data.length)				
+		while (true)
+			if (@mailBox != nil) and (@mailBox.length == @data.length)
 				@mailBox= Array.new
 				break
 			end 
@@ -79,48 +79,53 @@ class ProcPong
 		while (true)
 			recv()
 			if(@i < @qtdMsg - 1)
-				send()					
+				send()
 			else
-				break	
+				break
 			end
 			@i = @i + 1
 		end
 	end
 end
 
-class PingPong	
-	def initialize(tamMsg, qtdMsg)
+class PingPong
+	def initialize(tamMsg, qtdMsg, pairsN)
 		@tamMsg = tamMsg
 		@qtdMsg = qtdMsg
+		@pairsN = pairsN
 	end
 
 	def start
 		t = Thread.new do
 			array = Array.new(@tamMsg, 1)
+			pair = 0
 
-			p1 = ProcPing.new("1", array, @qtdMsg)
-			p2 = ProcPong.new("2", array, @qtdMsg)
-			
-			p2.setPeer(p1)
-			p1.setPeer(p2)
-	
-			time1 = Time.now
+			while pair < @pairsN
+				p1 = ProcPing.new("1", array, @qtdMsg)
+				p2 = ProcPong.new("2", array, @qtdMsg)
 
-			t1 = Thread.new { p1.start }			
-			t2 = Thread.new { p2.start }
-			
-			t1.join	
-				
-			time2 = Time.now
-			
-			delta = time2 - time1
+				p2.setPeer(p1)
+				p1.setPeer(p2)
 
-			line = "#{@tamMsg}\t#{@qtdMsg}\t#{"%.6f" % delta.to_f}"			
-				
+				time1 = Time.now
+
+				t1 = Thread.new { p1.start }
+				t2 = Thread.new { p2.start }
+
+				t1.join
+
+				time2 = Time.now
+
+				delta = time2 - time1
+				pair +=1
+			end
+
+			line = "#{@tamMsg}\t#{@qtdMsg}\t#{"%.6f" % delta.to_f}"
+
 			if File.exists?("temp.txt")
 				file = File.open("temp.txt", "a")	
 				file.puts(line)
-				file.close 			
+				file.close
 			else
 				file = File.open("temp.txt", "w")
 				file.puts(line)
@@ -132,10 +137,11 @@ class PingPong
 end
 
 if __FILE__ == $0
-	
+
 	tamMsg = ARGV[0].to_i
 	qtdMsg = ARGV[1].to_i
-	
-	pingPing = PingPong.new(tamMsg, qtdMsg)
+	pairsN = ARGV[2].to_i
+
+	pingPing = PingPong.new(tamMsg, qtdMsg, pairsN)
 	pingPing.start
 end

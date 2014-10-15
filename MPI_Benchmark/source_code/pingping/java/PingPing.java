@@ -11,37 +11,43 @@ public class PingPing extends Thread{
 
 	private int tamDados;
 	private int qtdRept;
+	private int pairsN;
 	private String outLocation;
-	
-	public PingPing(int tamDados, int qtdMsg, String outLocation) {
+
+	public PingPing(int tamDados, int qtdMsg, int pairsN, String outLocation) {
 		this.tamDados = tamDados;
 		this.qtdRept = qtdMsg;
+		this.pairsN = pairsN;
 		this.outLocation = outLocation;
 	}
 
 	public void run() {
 		byte[] dado = generateData(tamDados);
 
-		timeStart = timeMicroSeg();
-		ProcPing p1 = new ProcPing("1", dado, this, qtdRept);
-		ProcPing p2 = new ProcPing("2", dado, this, qtdRept);
-		timeEnd = timeMicroSeg();
+		//timeStart = timeMicroSeg();
+		for (int pair = 0; pair < pairsN; pair++) {
+			System.out.println(pair);
+			ProcPing p1 = new ProcPing("1", dado, this, qtdRept);
+			ProcPing p2 = new ProcPing("2", dado, this, qtdRept);
+			//timeEnd = timeMicroSeg();
 
-		timeSpawn = timeEnd - timeStart;
-		
-		timeStart = timeMicroSeg();
-		p1.setPeer(p2);
-		p1.start();
-		p2.setPeer(p1);
-		p2.start();
-		
-		dormirAteTerminar();
+			//timeSpawn = timeEnd - timeStart;
 
-		timeEnd = timeMicroSeg();
+			//timeStart = timeMicroSeg();
+			p1.setPeer(p2);
+			p1.start();
+			p2.setPeer(p1);
+			p2.start();
 
-		timeExec = timeEnd - timeStart;
-		
-		Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
+			dormirAteTerminar();
+
+			//timeEnd = timeMicroSeg();
+
+			//timeExec = timeEnd - timeStart;
+		}
+		//timeExec = timeMicroSeg();
+		//timeSpawn = timeMicroSeg();
+		//Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
 	}
 
 	private synchronized void dormirAteTerminar() {
@@ -51,7 +57,7 @@ public class PingPing extends Thread{
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-		}		
+		}
 	}
 
 	public synchronized void acordar() {
