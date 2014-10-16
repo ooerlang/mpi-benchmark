@@ -4,8 +4,7 @@ public class PingPing extends Thread{
     private Semaphore semaphore;
 
     private int qtdProcTotal;
-    private int qtdProcTerminados = 0;
-    
+
     private long timeSpawn;
     private long timeExec;
 
@@ -29,7 +28,7 @@ public class PingPing extends Thread{
         byte[] dado = generateData(tamDados);
         ProcPing procs[] = new ProcPing[2 * pairsN];
         timeStart = timeMicroSeg();
-        
+
         timeStart = timeMicroSeg();
         for (int i = 0; i < procs.length; i+= 2) {
             procs[i] = new ProcPing("" + i, dado, this, qtdRept);
@@ -48,23 +47,20 @@ public class PingPing extends Thread{
         }
         dormirAteTerminar();
         timeEnd = timeMicroSeg();
-        
+
         timeExec = timeEnd - timeStart;
         Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
     }
 
-    private synchronized void dormirAteTerminar() {
+    private void dormirAteTerminar() {
         try {
             this.semaphore.acquire();
         } catch (InterruptedException ie)
         {
         }
-        System.out.printf("" + qtdProcTerminados);
     }
 
     public synchronized void acordar() {
-        qtdProcTerminados++;
-        System.out.printf("-" + java.lang.Thread.currentThread().getName());
         this.semaphore.release();
     }
 

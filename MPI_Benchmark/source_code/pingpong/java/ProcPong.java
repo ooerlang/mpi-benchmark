@@ -18,7 +18,7 @@ public class ProcPong extends Thread {
 	private synchronized void send(byte[] msg) {
 		peer.mailbox = msg;//.clone();
 	}
-	
+
 	private void recv() {
 		while (true) {
 			synchronized (this) {
@@ -29,7 +29,7 @@ public class ProcPong extends Thread {
 			}
 		}
 	}
-	
+
 	public void run() {
 		for (int i = 1; i <= qtdMsg; i++) {
 			recv();

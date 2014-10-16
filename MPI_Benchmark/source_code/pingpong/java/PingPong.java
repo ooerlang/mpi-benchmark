@@ -1,72 +1,72 @@
+import java.util.concurrent.Semaphore;
+
 public class PingPong extends Thread{
+    private Semaphore semaphore;
 
-	private boolean espera = true;
-	
-	private long timeSpawn;
-	private long timeExec;
+    private long timeSpawn;
+    private long timeExec;
 
-	public long timeStart;
-	public long timeEnd;
+    public long timeStart;
+    public long timeEnd;
 
-	private int tamDados;
-	private int qtdRept;
-	private int pairsN;
-	private String outLocation;
-	
-	public PingPong(int tamDados, int qtdMsg, int pairsN, String outLocation) {
-		this.tamDados = tamDados;
-		this.qtdRept = qtdMsg;
-		this.pairsN = pairsN;
-		this.outLocation = outLocation;
-	}
+    private int tamDados;
+    private int qtdRept;
+    private int pairsN;
+    private String outLocation;
 
-	public void run() {
-		byte[] dado = generateData(tamDados);
+    public PingPong(int tamDados, int qtdMsg, int pairsN, String outLocation) {
+        this.tamDados = tamDados;
+        this.qtdRept = qtdMsg;
+        this.pairsN = pairsN;
+        this.outLocation = outLocation;
+        this.semaphore = new Semaphore(-pairsN + 1);
+    }
 
-		//timeStart = timeMicroSeg();
-		for (int pair = 0; pair < pairsN; pair++) {
-			ProcPing ping = new ProcPing("1", dado, this, qtdRept);
-			ProcPong pong = new ProcPong("2", dado, qtdRept);
-			//timeEnd = timeMicroSeg();
+    public void run() {
+        byte[] dado = generateData(tamDados);
+        ProcPing[] procsPing = new ProcPing[pairsN];
+        ProcPong[] procsPong = new ProcPong[pairsN];
 
-			//timeSpawn = timeEnd - timeStart;
-			
-			//timeStart = timeMicroSeg();
-			
-			ping.setPeer(pong);
-			ping.start();
-			pong.setPeer(ping);
-			pong.start();
-			
-			dormirAteTerminar();
-			//timeEnd = timeMicroSeg();
+        timeStart = timeMicroSeg();
+        for (int i = 0; i < pairsN; i++) {
+            procsPing[i] = new ProcPing("" + (2*i), dado, this, qtdRept);
+            procsPong[i] = new ProcPong("" + (2*i+1), dado, qtdRept);
+        }
+        timeEnd = timeMicroSeg();
+        timeSpawn = timeEnd - timeStart;
 
-			//timeExec = timeEnd - timeStart;
-		}
-		//Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
-	}
+        timeStart = timeMicroSeg();
+        for (int i = 0; i < pairsN; i++) {
+            procsPing[i].setPeer(procsPong[i]);
+            procsPong[i].setPeer(procsPing[i]);
 
-	private synchronized void dormirAteTerminar() {
-		while(espera){
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}		
-	}
+            procsPing[i].start();
+            procsPong[i].start();
+        }
+        dormirAteTerminar();
+        timeEnd = timeMicroSeg();
+        timeExec = timeEnd - timeStart;
 
-	public synchronized void acordar() {
-		espera = false;
-		notifyAll();
-	}
+        Salvar.writeResultPeer(outLocation, tamDados, qtdRept, timeExec, timeSpawn);
+    }
 
-	private byte[] generateData(int tamDados) {
-		byte[] dado = new byte[tamDados];
-		return dado;
-	}
+    private void dormirAteTerminar() {
+        try {
+            semaphore.acquire();
+        }
+        catch (InterruptedException ie) {}
+    }
 
-	private long timeMicroSeg() {
-		return System.nanoTime()/1000;
-	}
+    public void acordar() {
+        semaphore.release();
+    }
+
+    private byte[] generateData(int tamDados) {
+        byte[] dado = new byte[tamDados];
+        return dado;
+    }
+
+    private long timeMicroSeg() {
+        return System.nanoTime()/1000;
+    }
 }
