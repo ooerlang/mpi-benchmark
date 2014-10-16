@@ -1,85 +1,78 @@
 -module(pingping).
--export([run/3, run/4, create_pairs/4]).
+-export([run/3]).
 
 -include("conf.hrl").
 
-run(DataSize, R, PairsN) ->
-	OutFileLocation = "../../docs/erlang/out_erl_pingping.txt",
-	case file:open(OutFileLocation, [append]) of
-		{error, Why} ->
-			?ERR_REPORT("Failed to create file!", Why);
-		{ok, OutFile} ->
-			run(DataSize, R, PairsN, OutFile)
-	end.
+run(PairNumber, LoopNumber, MessageSize) ->
+    Message = generate_message(MessageSize),
 
-run(DataSize, R, PairsN, OutFile) ->
-	Data = generate_data(DataSize),
-  create_pairs(PairsN, Data, R, OutFile).
+    SpawnStart = time_microseg(),
+    PidPairs = spawn_pairs(PairNumber, LoopNumber, Message),
+    SpawnEnd = time_microseg(),
 
-create_pairs(0, _, _, _) -> ok;
+    TimeStart = time_microseg(),
+    start_pairs(PidPairs),
+    wait_finish(PidPairs),
+    TimeEnd = time_microseg(),
 
-create_pairs(PairsN, Data, R, OutFile) ->
+    SpawnTime = SpawnEnd - SpawnStart,
+    TotalTime = TimeEnd - TimeStart,
 
-  Self = self(),
+    print_result(PairNumber, LoopNumber, MessageSize, SpawnTime, TotalTime),
+    {SpawnTime, TotalTime}.
 
-  SpawnStart = time_microseg(),
-  P1 = spawn(fun() -> pingping(Data, Self, R) end),
-  P2 = spawn(fun() -> pingping(Data, Self, R) end),
+spawn_pairs(PN, LN, Msg) ->
+    spawn_pairs(PN, LN, Msg, self(), []).
 
-  SpawnEnd = time_microseg(),
-	TimeStart = time_microseg(),
-  P1 ! {init, self(), P2},
-  P2 ! {init, self(), P1},
+spawn_pairs(0, _, _, _, Pids) ->
+    Pids;
+spawn_pairs(PN, LN, Msg, Self, Pids) ->
+    P1 = spawn(fun() -> pingping(Msg, Self, LN) end),
+    P2 = spawn(fun() -> pingping(Msg, Self, LN) end),
+    spawn_pairs(PN - 1, LN, Msg, Self, [{P1, P2}|Pids]).
 
-  finalize(P1),
-  finalize(P2),
-  TimeEnd = time_microseg(),
-	TotalTime = TimeEnd - TimeStart,
-	SpawnTime = SpawnEnd - SpawnStart,
+start_pairs([]) -> ok;
+start_pairs([{P1, P2}|Pids]) ->
+    P1 ! {init, self(), P2},
+    P2 ! {init, self(), P1},
+    start_pairs(Pids).
 
-	printResult(Data, R, TotalTime, SpawnTime, OutFile),
-  create_pairs(PairsN-1, Data, R, OutFile).
+wait_finish([]) -> ok;
+wait_finish([{P1, P2}|Pids]) ->
+    finalize(P1),
+    finalize(P2),
+    wait_finish(Pids).
 
 pingping(_,Parent, 0) ->
-	Parent ! {finish, self()};
+    Parent ! {finish, self()};
 
 pingping(Data, Parent, R) ->
+    receive
+        {init, Parent, Peer} ->
+            Peer ! {self(), Data},
+            pingping(Data, Parent, R-1);
+        {Peer, Data} ->
+            Peer ! {self(), Data},
+            pingping(Data, Parent, R-1)
+    end.
 
-	receive
-		{init, Parent, Peer} ->
-			Peer ! {self(), Data},
-			pingping(Data, Parent, R-1);
-		{Peer, Data} ->
-			Peer ! {self(), Data},
-			pingping(Data, Parent, R-1)
-	end.
+finalize(Pid) ->
+    receive
+        {finish, Pid} ->
+            ok
+    end.
 
-finalize(P1) ->
-	receive
-		{finish, P1} ->
-			ok
-	end.
+print_result(PN, LN, MS, SpawnTime, TotalTime) ->
+    io:format("~w\t~w\t~w\t~w\t~w\n", [PN, LN, MS, SpawnTime, TotalTime]).
 
-printResult(Data, R, Time_exec, Time_spawn, OutFile) ->
-  FormatH = "~-9s\t ~-13s\t ~-17s\t ~-11s\t ~-10s~n",
-  Header = ["#bytes", "#repetitions", "exec_time[µsec]", "MBytes/sec", "spawn_time"],
-  io:format(OutFile, FormatH, Header),
-  MBps = bandwidth_calc(Data, Time_exec),
-  FormatD = "~-9w\t ~-13w\t ~-17.2f\t ~-11.6f\t ~-15.2f~n",
-  io:format(OutFile, FormatD, [size(Data), R, Time_exec, Time_spawn, MBps]).
+generate_message(Size) ->
+    generate_message(Size, []).
 
-bandwidth_calc(Data, Time) ->
-  Megabytes = (size(Data) / math:pow(2, 20)),
-  Seconds = (Time * 1.0e-6),
-  Megabytes / Seconds.
-
-generate_data(Size) -> generate_data(Size, []).
-
-generate_data(0, Bytes) ->
-  list_to_binary(Bytes);
-generate_data(Size, Bytes) ->
-  generate_data(Size - 1, [1 | Bytes]).
+generate_message(0, Bytes) ->
+    list_to_binary(Bytes);
+generate_message(Size, Bytes) ->
+    generate_message(Size - 1, [1 | Bytes]).
 
 time_microseg() ->
-  {MS, S, US} = now(),
-  (MS * 1.0e+12) + (S * 1.0e+6) + US.
+    {MS, S, US} = now(),
+    (MS * 1.0e+12) + (S * 1.0e+6) + US.
