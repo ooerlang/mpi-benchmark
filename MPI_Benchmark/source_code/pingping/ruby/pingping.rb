@@ -54,16 +54,26 @@ class PingPing
 	def start
 			t = Thread.new do
 			array = Array.new(@tamMsg, 1)
-			pair = 0
+			pairs = Array.new()
+			count = 0
 
-			while pair < @pairsN
+			time1 = Time.now
+			while count < @pairsN
 				p1 = ProcPing.new("1", array, @qtdMsg)
 				p2 = ProcPing.new("2", array, @qtdMsg)
+				pairs << [ p1, p2 ]
+				count +=1
+			end
+			time2 = Time.now
+			timeSpawn = time2 - time1
+
+			count = 0
+			time1 = Time.now
+			while count < @pairsN
+				(p1, p2) = pairs[count]
 
 				p2.setPeer(p1)
 				p1.setPeer(p2)
-
-				time1 = Time.now
 
 				t1 = Thread.new { p1.start }
 				t2 = Thread.new { p2.start }
@@ -71,13 +81,12 @@ class PingPing
 				t2.join
 				t1.join
 
-				time2 = Time.now
-
-				delta = time2 - time1
-				pair +=1
+				count +=1
 			end
+			time2 = Time.now
+			delta = time2 - time1
 
-			line = "#{@tamMsg}\t#{@qtdMsg}\t#{"%.6f" % delta.to_f}"
+			line = "#{@tamMsg}\t#{@qtdMsg}\t#{@pairsN}\t#{"%.6f" % delta.to_f}"
 
 			if File.exists?("temp.txt")
 				file = File.open("temp.txt", "a")
