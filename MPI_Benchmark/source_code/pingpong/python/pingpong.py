@@ -16,11 +16,11 @@ class ProcPing(Thread):
 	def setPeer(self, Peer):
 		self.Peer = Peer
 
-	def send(self, dado):		
+	def send(self, dado):
 		self.Peer.mailBox = dado
 
 	def recv(self):
-		while True:	
+		while True:
 			if not len(self.mailBox) < len(self.data):
 				self.mailBox = []
 				break
@@ -42,11 +42,11 @@ class ProcPong(Thread):
 	def setPeer(self, Peer):
 		self.Peer = Peer
 
-	def send(self, dado):		
+	def send(self, dado):
 		self.Peer.mailBox = dado
 
 	def recv(self):
-		while True:	
+		while True:
 			if not len(self.mailBox) < len(self.data):
 				self.mailBox = []
 				break
@@ -68,27 +68,34 @@ class PingPing(Thread):
 	def run(self):
 		index = 0
 		array = [1]
+		pairs = []
 		while index < self.tamMsg -1:
 			array.append(1)
 			index = index + 1
 
+		timeStart = datetime.datetime.now()
 		for pair in range(self.PairsN):
 			p1 = ProcPing("1", array, self.qtdMsg)
 			p2 = ProcPong("2", array, self.qtdMsg)
+			pairs += [ (p1, p2), ]
 
+		timeEnd = datetime.datetime.now()
+		timeSpawn = timeEnd - timeStart
+
+		timeStart = datetime.datetime.now()
+		for p1, p2 in pairs:
 			p2.setPeer(p1)
 			p1.setPeer(p2)
 
-			#timeStart = datetime.datetime.now()
 			p1.start()
 			p2.start()
 
 			p1.join()
-			#timeEnd = datetime.datetime.now()
 
-			#timeExec = timeEnd - timeStart
-		timeExec = "00"
-		line = "%d\t%d\t%s\n" % (self.tamMsg, self.qtdMsg, timeExec)
+		timeEnd = datetime.datetime.now()
+		timeExec = timeEnd - timeStart
+
+		line = "%d\t%d\t%s\t%s\n" % (self.tamMsg, self.qtdMsg, timeExec, timeSpawn)
 
 		try:
 			arq = open('saida.txt', 'r')
