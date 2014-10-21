@@ -4,6 +4,10 @@
 import sys
 import datetime
 from threading import Thread
+from threading import BoundedSemaphore
+
+semaphore = BoundedSemaphore()
+global_count = 0
 
 class ProcPing(Thread):
 	def __init__(self, name, data, qtdMsg):
@@ -52,10 +56,14 @@ class ProcPong(Thread):
 				break
 
 	def run(self):
+		global global_count
 		for i in range (0, self.qtdMsg + 1):
 			self.recv()
 			if i < self.qtdMsg:
 				self.send(self.data)
+		semaphore.acquire()
+		global_count -= 1
+		semaphore.release()
 
 class PingPing(Thread):
 
@@ -66,6 +74,7 @@ class PingPing(Thread):
 		self.PairsN = PairsN
 
 	def run(self):
+		global global_count
 		index = 0
 		array = [1]
 		pairs = []
@@ -90,8 +99,8 @@ class PingPing(Thread):
 			p1.start()
 			p2.start()
 
-			p1.join()
-
+		while global_count != 0:
+			pass
 		timeEnd = datetime.datetime.now()
 		timeExec = timeEnd - timeStart
 

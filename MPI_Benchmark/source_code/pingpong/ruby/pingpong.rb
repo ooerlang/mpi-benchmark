@@ -1,4 +1,8 @@
-#!/usr/bin/env ruby
+#!/usr/bin/ruby
+require 'thread'
+
+$mutex = Mutex.new
+$global_count = 0
 
 class ProcPing
 
@@ -15,7 +19,7 @@ class ProcPing
 	end
 	
 	def setMailBox(data)
-		@mailBox = data.clone
+		@mailBox = data#.clone
 	end
 			
 	def send()
@@ -37,7 +41,11 @@ class ProcPing
 			if(@i < @qtdMsg - 1)
 				recv()
 			else
-				break	
+				$mutex.synchronize do
+					$global_count -= 1
+				end
+				puts "PING", @name
+				break
 			end
 			@i = @i + 1
 		end
@@ -57,11 +65,11 @@ class ProcPong
 	def setPeer(peer)
 		@peer = peer
 	end
-	
+
 	def setMailBox(data)
-		@mailBox = data.clone
+		@mailBox = data#.clone
 	end
-			
+
 	def send()
 		@peer.setMailBox(@data)
 	end
@@ -69,7 +77,7 @@ class ProcPong
 	def recv()
 		while (true)
 			if (@mailBox != nil) and (@mailBox.length == @data.length)
-				@mailBox= Array.new
+				@mailBox = Array.new
 				break
 			end 
 		end
@@ -81,6 +89,11 @@ class ProcPong
 			if(@i < @qtdMsg - 1)
 				send()
 			else
+				$mutex.synchronize do
+					$global_count -= 1
+					# puts "DONE !", $global_count
+				end
+				puts "PONG", @name
 				break
 			end
 			@i = @i + 1
@@ -103,8 +116,8 @@ class PingPong
 
 			time1 = Time.now
 			while count < @pairsN
-				p1 = ProcPing.new("1", array, @qtdMsg)
-				p2 = ProcPong.new("2", array, @qtdMsg)
+				p1 = ProcPing.new("PING"+count.to_s, array, @qtdMsg)
+				p2 = ProcPong.new("PONG"+count.to_s, array, @qtdMsg)
 				pairs << [ p1, p2 ]
 				count +=1
 			end
@@ -122,9 +135,10 @@ class PingPong
 				t1 = Thread.new { p1.start }
 				t2 = Thread.new { p2.start }
 
-				t1.join
-
 				count +=1
+			end
+
+			while $global_count != 0
 			end
 			time2 = Time.now
 			delta = time2 - time1
@@ -132,7 +146,7 @@ class PingPong
 			line = "#{@tamMsg}\t#{@qtdMsg}\t#{@pairsN}\t#{"%.6f" % delta.to_f}"
 
 			if File.exists?("temp.txt")
-				file = File.open("temp.txt", "a")	
+				file = File.open("temp.txt", "a")
 				file.puts(line)
 				file.close
 			else
@@ -152,5 +166,6 @@ if __FILE__ == $0
 	pairsN = ARGV[2].to_i
 
 	pingPing = PingPong.new(tamMsg, qtdMsg, pairsN)
+	$global_count = pairsN*2
 	pingPing.start
 end
