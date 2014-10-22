@@ -29,7 +29,7 @@ class ProcPing
 	def recv()
 		while (true)
 			if (@mailBox != nil) and (@mailBox.length == @data.length)
-				@mailBox= Array.new
+				@mailBox = Array.new
 				break
 			end 
 		end
@@ -44,7 +44,6 @@ class ProcPing
 				$mutex.synchronize do
 					$global_count -= 1
 				end
-				puts "PING", @name
 				break
 			end
 			@i = @i + 1
@@ -91,9 +90,7 @@ class ProcPong
 			else
 				$mutex.synchronize do
 					$global_count -= 1
-					# puts "DONE !", $global_count
 				end
-				puts "PONG", @name
 				break
 			end
 			@i = @i + 1
@@ -116,8 +113,8 @@ class PingPong
 
 			time1 = Time.now
 			while count < @pairsN
-				p1 = ProcPing.new("PING"+count.to_s, array, @qtdMsg)
-				p2 = ProcPong.new("PONG"+count.to_s, array, @qtdMsg)
+				p1 = ProcPing.new("PING-"+count.to_s, array, @qtdMsg)
+				p2 = ProcPong.new("PONG-"+count.to_s, array, @qtdMsg)
 				pairs << [ p1, p2 ]
 				count +=1
 			end

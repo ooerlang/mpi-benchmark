@@ -4,6 +4,10 @@
 import sys
 import datetime
 from threading import Thread
+from threading import BoundedSemaphore
+
+semaphore = BoundedSemaphore()
+global_count = 0
 
 class ProcPing(Thread):
 	def __init__(self, name, data, qtdMsg):
@@ -22,15 +26,19 @@ class ProcPing(Thread):
 	def recv(self):
 		while True:
 			if not len(self.mailBox) < len(self.data):
-				print(self)
 				self.mailBox = []
 				break
 
 	def run(self):
+		global global_count
 		for i in range (0, self.qtdMsg + 1):
 			self.send(self.data)
 			if i < self.qtdMsg:
 				self.recv()
+		semaphore.acquire()
+		global_count -= 1
+		semaphore.release()
+
 
 class PingPing(Thread):
 
@@ -41,6 +49,7 @@ class PingPing(Thread):
 		self.PairsN = PairsN
 
 	def run(self):
+		global global_count
 		index = 0
 		array = [1]
 		pairs = []
@@ -50,8 +59,8 @@ class PingPing(Thread):
 
 		timeStart = datetime.datetime.now()
 		for pair in range(self.PairsN):
-			p1 = ProcPing("1", array, self.qtdMsg)
-			p2 = ProcPing("2", array, self.qtdMsg)
+			p1 = ProcPing(str(pair), array, self.qtdMsg)
+			p2 = ProcPing(str(pair), array, self.qtdMsg)
 			pairs += [ (p1, p2), ]
 
 		timeEnd = datetime.datetime.now()
@@ -65,9 +74,8 @@ class PingPing(Thread):
 			p1.start()
 			p2.start()
 
-			p1.join()
-			p2.join()
-
+		while global_count != 0:
+			pass
 		timeEnd = datetime.datetime.now()
 		timeExec = timeEnd - timeStart
 
@@ -95,6 +103,8 @@ def main():
 	PairsN = int(param[2])
 
 	pingPing = PingPing(tamMsg, qtdMsg, PairsN)
+	global global_count
+	global_count = PairsN*2
 	pingPing.start()
 
 if __name__=="__main__":

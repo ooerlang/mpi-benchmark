@@ -1,4 +1,8 @@
-#!/usr/bin/env ruby
+#!/usr/bin/ruby
+require 'thread'
+
+$mutex = Mutex.new
+$global_count = 0
 
 class ProcPing
 
@@ -15,7 +19,7 @@ class ProcPing
 	end
 	
 	def setMailBox(data)
-		@mailBox = data.clone
+		@mailBox = data#.clone
 	end
 			
 	def send()
@@ -27,7 +31,7 @@ class ProcPing
 			if (@mailBox != nil) and (@mailBox.length == @data.length)
 				@mailBox= Array.new
 				break
-			end 
+			end
 		end
 	end
 
@@ -37,6 +41,9 @@ class ProcPing
 			if(@i < @qtdMsg - 1)
 				recv()
 			else
+				$mutex.synchronize do
+					$global_count -= 1
+				end
 				break
 			end
 			@i = @i + 1
@@ -78,10 +85,10 @@ class PingPing
 				t1 = Thread.new { p1.start }
 				t2 = Thread.new { p2.start }
 
-				t2.join
-				t1.join
-
 				count +=1
+			end
+
+			while $global_count != 0
 			end
 			time2 = Time.now
 			delta = time2 - time1
@@ -109,5 +116,6 @@ if __FILE__ == $0
 	pairsN = ARGV[2].to_i
 
 	pingPing = PingPing.new(tamMsg, qtdMsg, pairsN)
+	$global_count = pairsN*2
 	pingPing.start
 end

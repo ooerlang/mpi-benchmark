@@ -30,10 +30,14 @@ class ProcPing(Thread):
 				break
 
 	def run(self):
+		global global_count
 		for i in range (0, self.qtdMsg + 1):
 			self.send(self.data)
 			if i < self.qtdMsg:
 				self.recv()
+		semaphore.acquire()
+		global_count -= 1
+		semaphore.release()
 
 class ProcPong(Thread):
 	def __init__(self, name, data, qtdMsg):
@@ -100,6 +104,7 @@ class PingPing(Thread):
 			p2.start()
 
 		while global_count != 0:
+			print global_count
 			pass
 		timeEnd = datetime.datetime.now()
 		timeExec = timeEnd - timeStart
@@ -128,6 +133,8 @@ def main():
 	PairsN = int(param[2])
 
 	pingPing = PingPing(tamMsg, qtdMsg, PairsN)
+	global global_count
+	global_count = PairsN*2
 	pingPing.start()
 
 if __name__=="__main__":
