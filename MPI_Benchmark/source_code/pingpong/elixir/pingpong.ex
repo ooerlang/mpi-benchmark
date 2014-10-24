@@ -3,35 +3,48 @@ defmodule Pingpong do
   MPI Benchmark [Pingpong] in elixir by Filipe Varjão <frgv@cin.ufpe.br>
   """
 
-  def run(size, r, pairsN) do
-    data = generate_data(size)
-    create_pairs(pairsN, data, r)
+  def run(pairNumber, rep, messageSize) do
 
-    
+    data = generate_data(messageSize)
+    spawnStart = time_microseg()
+    pidPairs = spawn_pairs(pairNumber, rep, data)
+    spawnEnd = time_microseg()
+
+    timeStart = time_microseg()
+    start_pairs(pidPairs)
+    wait_finish(pidPairs)
+    timeEnd = time_microseg()
+
+    totalTime = timeEnd - timeStart
+    spawnTime = spawnEnd - spawnStart
 
     # PRINT RESULT
-    #IO.puts "bytes #{:erlang.size(data)} | repetitions #{r} | exec_time[µsec] #{totalTime} | MBytes/sec #{spawnTime} | spawn_time #{bandwidth_calc(data, totalTime)}"
+    IO.puts "bytes #{:erlang.size(data)} | repetitions #{rep} | exec_time[µsec] #{totalTime} | MBytes/sec #{spawnTime} | spawn_time #{bandwidth_calc(data, totalTime)}"
   end
 
-  def create_pairs(0, _, _), do: :ok
+ def spawn_pairs(pn, rep, data), do: spawn_pairs(pn, rep, data, self(), [])
 
-  def create_pairs(pairsN, data, r) do
-    #spawnStart = time_microseg()
+  def spawn_pairs(0, _, _, _, pids), do: pids
 
-   spawnStart = time_microseg()
+  def spawn_pairs(pn, rep, data, parent, pids) do
+    p1 = spawn(fn -> pingpong(data, parent, rep) end)
+    p2 = spawn(fn -> pingpong(data, parent, rep) end)
+    spawn_pairs(pn - 1, rep, data, parent, [{p1, p2}|pids])
+  end
 
-    parent = self()
+  def start_pairs([]), do: :ok
 
-    p1 = spawn(fn -> pingpong(data, parent, r) end)
-    p2 = spawn(fn -> pingpong(data, parent, r) end)
-    #spawnEnd = time_microseg()
-    #timeStart = time_microseg()
+  def start_pairs([{p1, p2}|pids]) do
     send(p1, {:init, self, p2})
+    start_pairs(pids)
+  end
+
+  def wait_finish([]), do: :ok
+
+  def wait_finish([{p1, p2}|pids]) do
     finalize(p1)
-    #timeEnd = time_microseg()
-    #totalTime = timeEnd - timeStart
-    #spawnTime = spawnEnd - spawnStart
-    create_pairs(pairsN - 1, data, r)
+    finalize(p2)
+    wait_finish(pids)
   end
 
   def pingpong(_, pid, 0), do: send(pid ,{:finish, self})
